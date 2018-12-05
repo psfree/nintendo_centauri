@@ -1,29 +1,10 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <cstring>
+#include <algorithm>
 
 using namespace std;
-
-long air[50];
-
-int functor(long a, long b) {
-	long out = a;
-	long div=0;
-	int i=0;
-	while(true) {
-		air[i++] = out;
-		int t1 = flsl(out)-1;
-		int t2 = flsl(b)-1;
-		int diff = t1-t2;
-		if(diff<0) return out;
-		long i = 1;
-		div+= i<<diff;
-		out = out^(b<<diff);
-	
-	}
-	
-
-}
 
 void printmat(char ** mat, int m, int n) {
 	for(int z=0; z<m; z++){
@@ -86,48 +67,9 @@ void gg2rref(char ** mat, int m, int n) {
 
 }
 
-void rref(char ** mat, int rows, int cols) {
-	int c;
-	int r=0;
-	
-	for(c = cols-rows; c<cols; c++){
-		if(((char (*)[cols])mat)[r][c] == 0) {
-			for(int j=r+1; j<rows; j++) {
-				if(((char (*)[cols])mat)[j][c]!=0) {
-					char * tmp = mat[r];
-					mat[r] = mat[j];
-					mat[j] = tmp;
-					//add same code for identity matrix
-				}
-			}
-		}
-		if(((char (*)[cols])mat)[r][c]==0) {
-			printf("error, singularity\n");
-		}
-		for(int j=r+1; j<rows; j++) {
-			if(((char (*)[cols])mat)[j][c] == 1)	{
-				for(int i=0; i<cols; i++) {
-					((char (*)[cols])mat)[j][i] ^= ((char (*)[cols])mat)[r][i];
-					//add I matrix code
-				}
-			}
-		}
-		for(int j=0; j<r; j++) {
-			if(((char (*)[cols])mat)[j][c] ==1) {
-				for(int i=0; i<cols; i++) {
-					((char (*)[cols])mat)[j][i] ^= ((char (*)[cols])mat)[r][i];
-					//add I matrix code
-				}
-			}
-		}
-		r++;
-	}
-
-
-}
 
 class polynomial {
-	#define SIZEMAX 256
+	#define SIZEMAX 1024
 	private:
 	public:
 		int top_bit;
@@ -137,6 +79,19 @@ class polynomial {
 		polynomial * div;  //could potentially be larger than long stores
 		unsigned int * arr;
 		bool squared;
+		
+		void print() {
+			int sz = mSize;
+			if(sz % 32 != 0) {
+				sz = ((sz/32) +1)*32;
+			}
+			for(int i = 0 ; i< sz/32; i++) {
+				printf("%08x", arr[i]);
+				if((i+1) < sz/32)
+					printf(" ");
+			}
+		
+		}
 		
 		vector<polynomial> * bka() {
 			int top = this->top_bit;
@@ -255,7 +210,7 @@ class polynomial {
 		}
 		
 		static bool sortPairs(vector<polynomial> a, vector<polynomial> b) {
-			bool ret = a.at(0) < b.at(0);
+			bool ret = a.at(0).reverse() < b.at(0).reverse();
 			return ret;
 		}
 		
@@ -273,7 +228,7 @@ class polynomial {
 				}
 			}
 			sz = irr->size();
-			int total = 1<<sz;
+			int total = (1<<sz) -1;
 			char bits[1];
 			bits[0] = 1;
 			vector<vector<polynomial> > * out= new vector<vector<polynomial> >();
@@ -314,6 +269,25 @@ class polynomial {
 				}
 			
 			}
+			
+			//add corner case
+			if(this->top_bit < this->mSize/2) {
+				char bit[1];
+				bit[0] = 1;
+				polynomial one(1, bit);
+				polynomial self(32, this->bits);
+				
+				vector<polynomial> p1, p2;
+				p1.push_back(self);
+				p1.push_back(one);
+				
+				p2.push_back(one);
+				p2.push_back(self);
+				
+				out->push_back(p1);
+				out->push_back(p2);
+			
+			}
 			sort(out->begin(), out->end(), sortPairs);
 			
 			return out;
@@ -345,6 +319,15 @@ class polynomial {
 			
 			}
 			return out;
+		}
+		
+		polynomial reverse() {
+			polynomial p(*this);
+			for(int i=0; i<mSize/16; i++) {
+				p.arr[i] = this->arr[mSize/16-1-i];
+			}
+			p.updateBits();
+			return p;
 		}
 		
 		vector<polynomial> * sff() {
@@ -653,6 +636,8 @@ class polynomial {
 			}
 			for(int i=0; i< SIZEMAX*2; i++) {
 				bits[i] = (arr[i/32] >> (i %32) &1);
+				if(bits[i] == 1)
+					top_bit = i;
 			}
 	
 		}
@@ -742,106 +727,26 @@ class polynomial {
 
 int main()
 {
-	functor(0x0caea3f47fe00033, 0x0000000000001415);
-  /*int size;
+  int size;
 
   cin >> size;
 
   unsigned int* a = new unsigned int[size / 16]; // <- input tab to encrypt
-  unsigned int* b = new unsigned int[size / 16]; // <- output tab
  
-  for (int i = 0; i < size / 16; i++) {	  // Read size / 16 integers to a
-	cin >> hex >> a[i];
-  }
-
-  for (int i = 0; i < size / 16; i++) {	  // Write size / 16 zeros to b
-	b[i] = 0;
+  for (int i = 0; i < size / 16; i++) {   // Read size / 16 integers to a
+    cin >> hex >> a[i];
   } 
-  polynomial p(size*2, a);
-  char bita[size*2];
-  for(int i=0; i< size*2; i++) {
-	bita[i] = (a[i/32] >> (i %32) &1);
-  }*/
-  
-  /*unsigned int x[1];
-  x[0] = 0x00000067;
-  polynomial xx(32, x);
-  x[0] = 0x00278a99;
-  polynomial xy(32, x);
-  x[0] = 0x00000003;
-  polynomial xz(32, x);
-  
-  polynomial b = xx*xy;
-  polynomial c= xy*xz;
-  polynomial d = xx*xz;
-  
-  polynomial e = b*xz;
-  polynomial f = xy*d;
-  f.updateArray(); */
-  
-  unsigned int fa[2];
-  fa[1] = 0x0caea3f4;
-  fa[0] = 0x7fe00033;
-  polynomial fap(64, fa);
-  vector<vector<polynomial> > * piss = fap.centauri();
-  
-  for(int i=0; i<piss->size(); i++) {
-  	unsigned int v1= piss->at(i).at(0).arr[0];
-  	unsigned int v2= piss->at(i).at(1).arr[0];
-  	printf("%x %x\n", v1, v2);
+ polynomial p(size*2, a);
+ vector<vector<polynomial> > * decrypt = p.centauri();
+ for(int i=0; i<decrypt->size(); i++) {
+		decrypt->at(i).at(0).print();
+		printf(" ");
+		decrypt->at(i).at(1).print();
+		printf("\n");		
   }
-    
-  
-  
-  /*unsigned int* a_rev = new unsigned int[size / 16];
-  for(int i=0; i< size*2; i++) {
-	a_rev[i/32] |= bita[i] << (i%32);
-  }
-  
-  char bitb[size*2];
-  for(int i=0; i<size*2; i++)
-	bitb[i]=0;
-  
-  for (int i = 0; i < size; i++) {
-	for (int j = 0; j < size; j++) {
-		bitb[i+j] ^= bita[i] & bita[j +size] &1;
-		b[(i + j) / 32] ^= ( (a[i / 32] >> (i % 32)) &
-				(a[j / 32 + size / 32] >> (j % 32)) & 1 ) << ((i + j) % 32);	  // Magic centaurian operation
-		}
-  }
-  
-  char db[size*2];
-  db[size*2-1] = 0;
-  for(int i=size*2 -2; i>-1; i--) {
-  	if(i%2==0) {
-  		db[i] = bitb[i+1];
-  	}else {
-  		db[i] = 0;
-  	}
-  }
-	
-
-	
-	
-  
-  unsigned int* b_rev = new unsigned int[size / 16];
-  unsigned int* db_rev = new unsigned int[size / 16];
-  for(int i=0; i< size*2; i++) {
-	b_rev[i/32] |= bitb[i] << (i%32);
-	db_rev[i/32] |= db[i] << (i%32);
-  }
- 
-  for(int i = 0; i < size / 16; i++) {
-	if (i > 0) {
-	  cout << ' ';
-	}
-	cout << setfill('0') << setw(8) << hex << b[i];		  // print result
-  }
-  cout << endl;*/
-  
 
  /* 
-	Good luck humans	 
+    Good luck humans     
  */
   return 0;
 }
